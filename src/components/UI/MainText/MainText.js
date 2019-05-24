@@ -10,7 +10,8 @@ const mainText = props => (
 const styles = StyleSheet.create({
     mainText : {
         color: 'white',
-        marginBottom: 20
+        marginBottom: 20,
+        textAlign: 'justify'
     }
 }) 
 

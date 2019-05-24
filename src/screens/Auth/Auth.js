@@ -1,39 +1,162 @@
+import imageBackground from '../../assets/background3.jpg'
 import React, { Component } from 'react'
-import { View, Button, StyleSheet,ImageBackground} from 'react-native'
-
-import startMainTabs from '../MainTabs/startMainTabs'
+import { View, Button, Text, StyleSheet,ImageBackground, KeyboardAvoidingView} from 'react-native'
+import { connect } from 'react-redux'
+import {Fire} from '../../firebase/index'
+import { loginUser } from '../../store/actions/index'
+import {startTabs} from '../MainTabs/startMainTabs'
 import DefaultInput from '../../components/UI/DefaultInput/DefaultInput'
 import HeadingText from '../../components/UI/HeadingText/HeadingText'
 import MainText from '../../components/UI/MainText/MainText'
-import imageBackground from '../../assets/background3.jpg'
 import ButtonWithBackground from '../../components/UI/ButtonWithBackground/ButtonWithBackground'
 
+
 class AuthScreen extends Component {
+    state = {
+        authMode : 'login',
+        email: '',
+        password: '',
+        confirm: '',
+        error: ''
+    }
+
+    componentDidUpdate(){
+        if(this.props.user){
+            startTabs()
+        }
+    }
+
+    componentDidMount() {
+        Fire.auth().onAuthStateChanged((user)=>{
+            if(user){
+                var {uid, email} = user
+                // tembak ke redux
+                this.props.onLoginUser(uid,email)
+            }
+        })
+    }
+
     loginHandler= () => {
-        startMainTabs()
+        // Login ke firebase
+        Fire.auth().signInWithEmailAndPassword(this.state.email, this.state.password)
+        .then(res => {
+            var {uid, email} = res.user
+            // Login ke aplikasi
+            this.props.onLoginUser(uid,email)
+        })
+    }
+
+    signupHandler = () => {
+        if(this.state.email && this.state.password && this.state.confirm){
+            if(this.state.password === this.state.confirm){
+                if(this.state.password.trim().length > 6){
+                    //signup dan auto login ke firebase
+                    Fire.auth().createUserWithEmailAndPassword(this.state.email, this.state.password)
+                    .then(res => {
+                        var {uid, email} = res.user
+                        // login ke aplikasi
+                        this.props.onLoginUser(uid,email)
+                    }).catch(err => {
+                        this.setState({error: err.message})
+                    })
+                } else {
+                    this.setState({error: 'Password harus lebih dari 6 karakter'})
+                }
+            } else {
+                this.setState({error: 'Password dan Confirm tidak sama'})
+            }
+        } else {
+            this.setState({error: 'Harap isi semua kolom'})
+        }
+    }
+
+    switchAuthModeHandler = () => {
+        this.setState(prevState => {
+            return {
+                authMode: prevState.authMode === 'login' ? 'signup' : 'login'
+            }
+        })
     }
 
     render () {
+        let submitButtonControl, headingTextControl
+        let confirmPasswordControl = null
+
+        let errMessage = null
+        if(this.state.error){
+            errMessage = (
+                <Text>{this.state.error}</Text>
+            )
+        }
+
+        if(this.state.authMode === 'signup'){
+            confirmPasswordControl = (
+                <DefaultInput
+                    placeholder='Confirm Password'
+                    onChangeText={val => {this.setState({confirm: val})}}
+                    secureTextEntry/>
+            )
+
+            submitButtonControl = (
+                <ButtonWithBackground color='#a5b4ef' onTekan={this.signupHandler}>
+                    Signup
+                </ButtonWithBackground>
+            )
+
+            headingTextControl1 = (
+                <MainText>
+                    <HeadingText>Aldy Azarya</HeadingText>
+                </MainText>
+            )
+
+            headingTextControl = (
+                <MainText>
+                    <HeadingText>Please Sign Up</HeadingText>
+                </MainText>
+            )
+        } else {
+            submitButtonControl = (
+                <ButtonWithBackground color='#a5b4ef' onTekan={this.loginHandler}>
+                    Login
+                </ButtonWithBackground>
+            )
+
+            headingTextControl1 = (
+                <MainText>
+                    <HeadingText>ALDY AZARYA</HeadingText>
+                    
+                </MainText>
+            )
+
+            headingTextControl = (
+                <MainText>
+                    
+                    <HeadingText>Please Log In</HeadingText>
+                </MainText>
+            )
+        }
+
         return (
             <ImageBackground source={imageBackground} style={styles.backgroundImage}>
-                <View style={styles.container}>
-                    <MainText>
-                        <HeadingText>Please Log In</HeadingText>
-                    </MainText>
-                    <ButtonWithBackground color='salmon'>
-                        Switch to Login
+                <KeyboardAvoidingView behavior='padding' style={styles.container}>
+                    {headingTextControl1}
+                    {headingTextControl}
+                    <ButtonWithBackground color='#a5b4ef' onTekan={this.switchAuthModeHandler}>
+                        Switch to {this.state.authMode === 'login' ? 'Signup' : 'Login'}
                     </ButtonWithBackground>
                     <View style={styles.inputContainer}>
-                        
-                            <DefaultInput placeholderTextColor='white' placeholder='Your E-Mail Address'/>
-                            <DefaultInput placeholderTextColor='white' placeholder='Password'/>
-                            <DefaultInput placeholderTextColor='white' placeholder='Confirm Password'/>
-                        
+                        <DefaultInput 
+                            placeholder='Your E-Mail Address'
+                            onChangeText={val => {this.setState({email: val})}}/>
+                        <DefaultInput
+                            placeholder='Password'
+                            onChangeText={val => {this.setState({password: val})}}
+                            secureTextEntry/>
+                        {confirmPasswordControl}
                     </View>
-                    <ButtonWithBackground color='#a5b4ef' onTekan={this.loginHandler}>
-                        Login
-                    </ButtonWithBackground>
-                </View>
+                    {submitButtonControl}
+                    {errMessage}
+                </KeyboardAvoidingView>
             </ImageBackground>
         )
     }
@@ -46,14 +169,24 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     inputContainer: {
-        width: '80%',
-        marginTop: 20,
-        marginBottom: 10
+        width: '80%'
     },
     backgroundImage: {
         width: '100%',
-        flex: 1
+        flex: 1,
     }
 })
 
-export default AuthScreen
+const mapStateToProps = state => {
+    return {
+        user: state.auth.user.email
+    }
+}
+
+const mapDispatchToProps = dispatch => {
+    return {
+        onLoginUser: (uid, email) => dispatch(loginUser(uid, email))
+    }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(AuthScreen)

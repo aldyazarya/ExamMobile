@@ -1,6 +1,7 @@
 import { 
     ADD_PLACE,
-    DELETE_PLACE
+    DELETE_PLACE,
+    CREATE_DATA
 } from '../actions/actionTypes'
 
 const initialState = {
@@ -14,7 +15,7 @@ const reducer = (state = initialState, action) => {
                 ...state,
                 places: state.places.concat({
                     key: Math.random().toString(),
-                    value: action.placeName,
+                    value: [action.placeName, action.placeAge, action.placePosition],
                     image: {
                         uri: "https://freerangestock.com/sample/78746/halloween-cat-icon-means-trick-or-treat-and-autumn.jpg"
                     }
@@ -28,10 +29,15 @@ const reducer = (state = initialState, action) => {
                     return place.key !== action.placeKey
                 })
             }
+
+        case CREATE_DATA:
+            return {
+                ...state,
+                places: action.payload
+            }
         default:
             return state
     }
 }
 
 export default reducer
-

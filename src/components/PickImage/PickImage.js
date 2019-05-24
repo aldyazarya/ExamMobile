@@ -29,8 +29,7 @@ const styles = StyleSheet.create({
         height: 150
     },
     button: {
-        margin: 8,
-
+        margin: 8
     }
 })
 

@@ -3,8 +3,16 @@ import { View, Text } from 'react-native';
 import { connect } from 'react-redux'
 
 import PlaceList from '../../components/PlaceList/PlaceList'
+import {Fire} from '../../firebase/index'
+import {createData} from '../../store/actions/index'
 
 class FindPlaceScreen extends Component {
+
+    componentDidMount(){
+        var places = Fire.database().ref('places')
+        places.once('value', this.props.onCreateData, (err) => {console.log(err);})
+    }
+
     constructor(props) {
         super(props)
         this.props.navigator.setOnNavigatorEvent(this.onNavigatorEvent);
@@ -34,6 +42,8 @@ class FindPlaceScreen extends Component {
         })
     }
 
+    
+
     render () {
         return (
             <View>
@@ -52,6 +62,10 @@ const mapStateToProps = state => {
     }
 }
 
+// const mapDispatchToProps = dispatch => {
+//     return {
+//         onCreateData: items => dispatch(createData(items))
+//     }
+// }
 
-
-export default connect(mapStateToProps)(FindPlaceScreen);
+export default connect(mapStateToProps, {createData})(FindPlaceScreen);
